@@ -1,0 +1,21 @@
+MiniGems
+========
+
+A lightweight drop-in replacement for the rubygems to facilitate faster loading 
+of gems as well as reducing memory consumption considerably. Depending on the 
+amount of gems you have installed about 10-20 MB less RAM will be used, compared
+to the full rubygems library version, which keeps a cache of all gems and files 
+referenced by them.
+
+Minigems handles loading for required gems from your scripts. If however, other 
+functionality is needed, the full rubygems library will be loaded automatically 
+to continue normal operation.
+
+To use minigems in your own scripts, use the following construct, instead of the 
+common 'require "rubygems"' statement:
+
+begin 
+  require 'minigems'
+rescue LoadError 
+  require 'rubygems'
+end

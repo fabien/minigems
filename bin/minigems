@@ -1,0 +1,54 @@
+#!/usr/bin/env ruby
+require 'rubygems'
+require 'fileutils'
+
+install_path = File.join(RbConfig::CONFIG['sitelibdir'], 'minigems.rb')
+
+if ARGV.empty? || %w[-H --help].detect { |o| ARGV.index(o) }
+  program = File.basename($0)
+  puts "Usage:"
+  puts "  #{program} [options]"
+  puts "  sudo #{program} --install"
+  puts "  "
+  puts "Description:"
+  puts "  Manage 'minigems': a lightweight drop-in replacement for the rubygems"
+  puts "  to facilitate faster loading of gems as well as reducing memory"
+  puts "  consumption considerably. Depending on the amount of gems you have"
+  puts "  installed about 10-20 MB less RAM will be used, compared to the full"
+  puts "  rubygems library version, which keeps a cache of all gems and files"
+  puts "  referenced by them."
+  puts "  "
+  puts "  Minigems handles loading for required gems from your scripts. If however,"
+  puts "  other functionality is needed, the full rubygems library will be loaded"
+  puts "  automatically to continue normal operation."
+  puts "  "
+  puts "  To use minigems in your own scripts, use the following construct,"
+  puts "  instead of the common 'require \"rubygems\"' statement:"
+  puts "  "
+  puts "  begin"
+  puts "    require 'minigems'"
+  puts "  rescue LoadError"
+  puts "    require 'rubygems'"
+  puts "  end"
+  puts "  "
+  puts "Options:"
+  puts "  -I, --install   Install minigems at #{install_path}."
+  puts "  -H, --help      Show this message and quit."
+  puts "  -v, --version   Show the program version number and quit."
+elsif %w[-I --install].detect { |o| ARGV.index(o) }
+  if (gem_spec = Gem.source_index.search('minigems').last) && 
+    File.exists?(source_path = File.join(gem_spec.full_gem_path, 'lib', 'minigems.rb'))
+    begin
+      FileUtils.copy_file(source_path, install_path)
+      puts "Installed minigems at #{install_path}"
+    rescue Errno::EACCES
+      puts "Could not install minigems at #{install_path} (try sudo)"
+    end
+  end
+elsif %w[-v --version].detect { |o| ARGV.index(o) } 
+  require source_path
+  puts "minigems #{Gem::MiniGems::VERSION}"
+elsif !ARGV.empty?
+  puts "Invalid option: #{ARGV.first}"
+end
+

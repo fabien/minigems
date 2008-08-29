@@ -1,0 +1,17 @@
+test_log
+pkg
+pkg/*
+*.log
+log
+!log*.rb
+*/log
+log/*
+*/log/*
+coverage
+.DS_Store
+*.pid
+*.gem
+TAGS
+*.rbc
+*.tmproj
+.#*
