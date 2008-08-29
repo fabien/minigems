@@ -7,9 +7,13 @@ amount of gems you have installed about 10-20 MB less RAM will be used, compared
 to the full rubygems library version, which keeps a cache of all gems and files 
 referenced by them.
 
-Minigems handles loading for required gems from your scripts. If however, other 
+Minigems handles loading of required gems from your scripts. If however, other 
 functionality is needed, the full rubygems library will be loaded automatically 
 to continue normal operation.
+
+You'll need to run 'sudo minigems --install' to get started; this will install
+minigems.rb in your site_ruby directory, which makes it available to all your
+ruby scripts.
 
 To use minigems in your own scripts, use the following construct, instead of the 
 common 'require "rubygems"' statement:

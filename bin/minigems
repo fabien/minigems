@@ -18,7 +18,7 @@ if ARGV.empty? || %w[-H --help].detect { |o| ARGV.index(o) }
   puts "  rubygems library version, which keeps a cache of all gems and files"
   puts "  referenced by them."
   puts "  "
-  puts "  Minigems handles loading for required gems from your scripts. If however,"
+  puts "  Minigems handles loading of required gems from your scripts. If however,"
   puts "  other functionality is needed, the full rubygems library will be loaded"
   puts "  automatically to continue normal operation."
   puts "  "
