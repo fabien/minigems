@@ -1,14 +1,86 @@
 #!/usr/bin/env ruby
 require 'rubygems'
+require 'rubygems/gem_runner'
+require 'rubygems/exceptions'
+require 'rubygems/commands/install_command'
+require 'rubygems/commands/update_command'
 require 'fileutils'
 
-install_path = File.join(RbConfig::CONFIG['sitelibdir'], 'minigems.rb')
+module Gem
+
+  class GemRunner
+    def run_command(command_name, args)
+      args.unshift command_name.to_s
+      do_configuration(args)
+      cmd_manager = @command_manager_class.instance
+      config_args = Gem.configuration[command_name.to_s]
+      config_args = case config_args
+                    when String
+                      config_args.split ' '
+                    else
+                      Array(config_args)
+                    end
+      Command.add_specific_extra_args(command_name, config_args)
+      cmd_manager.run(Gem.configuration.args)
+    rescue Gem::SystemExitException
+      cmd_manager.cmd
+    ensure
+      cmd_manager.cmd
+    end
+  end
+  
+  class Command
+    def get_all_referenced_gem_specs
+      get_all_gem_names.map { |name| Gem.source_index.search(name).last }.compact
+    end
+  end
+  
+  class CommandManager
+    attr_accessor :cmd
+    alias :original_find_command :find_command
+    def find_command(cmd_name)
+      self.cmd = original_find_command(cmd_name)
+      self.cmd
+    end
+  end
+  
+end
+
+def adapt_executables_for(gemspec)
+  gemspec.executables.each do |executable|
+    if File.exists?(wrapper_path = File.join(Gem.bindir, executable))
+      wrapper_code = File.read(wrapper_path).gsub(/require\s+['"]rubygems['"]/, "require 'minigems'").gsub("RubyGems", "MiniGems")
+      if File.open(wrapper_path, 'w') { |f| f.write(wrapper_code) }
+        puts "Adapted #{wrapper_path} to use minigems instead of rubygems."
+      else
+        puts "Failed to adapt #{wrapper_path} - maybe you need sudo permissions?"
+      end
+    end
+  end
+end
+
+def ensure_minigems_in_load_path!(force = false)
+  install_path = File.join(Gem::ConfigMap[:sitelibdir], 'minigems.rb')
+  if force || !File.exists?(install_path)
+    if (gem_spec = Gem.source_index.search('minigems').last) && 
+      File.exists?(source_path = File.join(gem_spec.full_gem_path, 'lib', 'minigems.rb'))
+      begin
+        FileUtils.copy_file(source_path, install_path)
+        puts "Installed minigems at #{install_path}"
+      rescue Errno::EACCES
+        puts "Could not install minigems at #{install_path} (try sudo)"
+      end
+    end
+  end
+end
 
 if ARGV.empty? || %w[-H --help].detect { |o| ARGV.index(o) }
   program = File.basename($0)
   puts "Usage:"
   puts "  #{program} [options]"
-  puts "  sudo #{program} --install"
+  puts "  #{program} GEMNAME [GEMNAME ...]"
+  puts "  #{program} install GEMNAME [GEMNAME ...] [options] -- --build-flags [options]"
+  puts "  #{program} update GEMNAME [GEMNAME ...] [options]"
   puts "  "
   puts "Description:"
   puts "  Manage 'minigems': a lightweight drop-in replacement for the rubygems"
@@ -32,23 +104,31 @@ if ARGV.empty? || %w[-H --help].detect { |o| ARGV.index(o) }
   puts "  end"
   puts "  "
   puts "Options:"
-  puts "  -I, --install   Install minigems at #{install_path}."
   puts "  -H, --help      Show this message and quit."
   puts "  -v, --version   Show the program version number and quit."
-elsif %w[-I --install].detect { |o| ARGV.index(o) }
-  if (gem_spec = Gem.source_index.search('minigems').last) && 
-    File.exists?(source_path = File.join(gem_spec.full_gem_path, 'lib', 'minigems.rb'))
-    begin
-      FileUtils.copy_file(source_path, install_path)
-      puts "Installed minigems at #{install_path}"
-    rescue Errno::EACCES
-      puts "Could not install minigems at #{install_path} (try sudo)"
-    end
+elsif ARGV[0] == 'setup'
+  ensure_minigems_in_load_path!(true)
+elsif ARGV[0] == 'prepare'
+  ARGV.shift # skip prepare command argument
+  ensure_minigems_in_load_path!(ARGV.empty?)
+  ARGV.each do |gem_name|
+    next unless (gem_spec = Gem.source_index.search(gem_name).last)
+    adapt_executables_for(gem_spec)
   end
-elsif %w[-v --version].detect { |o| ARGV.index(o) } 
-  require source_path
-  puts "minigems #{Gem::MiniGems::VERSION}"
-elsif !ARGV.empty?
-  puts "Invalid option: #{ARGV.first}"
+elsif ARGV[0] == 'install'
+  ARGV.shift # skip install command argument
+  ensure_minigems_in_load_path!
+  cmd = Gem::GemRunner.new.run_command(:install, ARGV)
+  cmd.get_all_referenced_gem_specs.each do |gemspec|
+    adapt_executables_for(gemspec)
+  end
+elsif ARGV[0] == 'update'
+  ARGV.shift # skip update command argument
+  ensure_minigems_in_load_path!(ARGV.index('--system'))
+  cmd = Gem::GemRunner.new.run_command(:update, ARGV)
+  cmd.get_all_referenced_gem_specs.each do |gemspec|
+    adapt_executables_for(gemspec)
+  end
+else
+  Gem::GemRunner.new.run_command(ARGV[0] || 'help', ARGV)
 end
-
