@@ -48,6 +48,7 @@ end
 
 def adapt_executables_for(gemspec)
   gemspec.executables.each do |executable|
+    next if executable == 'minigem' # can't ever modify itself
     if File.exists?(wrapper_path = File.join(Gem.bindir, executable))
       wrapper_code = File.read(wrapper_path).gsub(/require\s+['"]rubygems['"]/, "require 'minigems'").gsub("RubyGems", "MiniGems")
       if File.open(wrapper_path, 'w') { |f| f.write(wrapper_code) }

@@ -32,10 +32,10 @@ spec = Gem::Specification.new do |s|
   s.email = GEM_EMAIL
   s.homepage = PROJECT_URL
   s.bindir = "bin"
-  s.executables = %w( minigems )
+  s.executables = %w( minigem )
   s.require_path = "lib"
   s.files = %w(LICENSE README Rakefile) + Dir.glob("{lib,bin,spec}/**/*")
-  s.post_install_message = "Run 'minigems' for instructions on how to proceed."
+  s.post_install_message = "Run 'minigem' for instructions on how to proceed."
 end
 
 def sudo
