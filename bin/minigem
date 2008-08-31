@@ -1,81 +1,11 @@
 #!/usr/bin/env ruby
 require 'rubygems'
-require 'rubygems/gem_runner'
-require 'rubygems/exceptions'
-require 'rubygems/commands/install_command'
-require 'rubygems/commands/update_command'
-require 'fileutils'
+require 'minigems/script_helper'
 
-module Gem
-
-  class GemRunner
-    def run_command(command_name, args)
-      args.unshift command_name.to_s
-      do_configuration(args)
-      cmd_manager = @command_manager_class.instance
-      config_args = Gem.configuration[command_name.to_s]
-      config_args = case config_args
-                    when String
-                      config_args.split ' '
-                    else
-                      Array(config_args)
-                    end
-      Command.add_specific_extra_args(command_name, config_args)
-      cmd_manager.run(Gem.configuration.args)
-    rescue Gem::SystemExitException
-      cmd_manager.cmd
-    ensure
-      cmd_manager.cmd
-    end
-  end
-  
-  class Command
-    def get_all_referenced_gem_specs
-      get_all_gem_names.map { |name| Gem.source_index.search(name).last }.compact
-    end
-  end
-  
-  class CommandManager
-    attr_accessor :cmd
-    alias :original_find_command :find_command
-    def find_command(cmd_name)
-      self.cmd = original_find_command(cmd_name)
-      self.cmd
-    end
-  end
-  
-end
-
-def adapt_executables_for(gemspec)
-  gemspec.executables.each do |executable|
-    next if executable == 'minigem' # can't ever modify itself
-    if File.exists?(wrapper_path = File.join(Gem.bindir, executable))
-      wrapper_code = File.read(wrapper_path).gsub(/require\s+['"]rubygems['"]/, "require 'minigems'").gsub("RubyGems", "MiniGems")
-      if File.open(wrapper_path, 'w') { |f| f.write(wrapper_code) }
-        puts "Adapted #{wrapper_path} to use minigems instead of rubygems."
-      else
-        puts "Failed to adapt #{wrapper_path} - maybe you need sudo permissions?"
-      end
-    end
-  end
-end
-
-def ensure_minigems_in_load_path!(force = false)
-  install_path = File.join(Gem::ConfigMap[:sitelibdir], 'minigems.rb')
-  if force || !File.exists?(install_path)
-    if (gem_spec = Gem.source_index.search('minigems').last) && 
-      File.exists?(source_path = File.join(gem_spec.full_gem_path, 'lib', 'minigems.rb'))
-      begin
-        FileUtils.copy_file(source_path, install_path)
-        puts "Installed minigems at #{install_path}"
-      rescue Errno::EACCES
-        puts "Could not install minigems at #{install_path} (try sudo)"
-      end
-    end
-  end
-end
+include Gem::MiniGems::ScriptHelper
 
 if ARGV.empty? || %w[-H --help].detect { |o| ARGV.index(o) }
+  # Show some usage information.
   program = File.basename($0)
   puts "Usage:"
   puts "  #{program} [options]"
@@ -108,28 +38,30 @@ if ARGV.empty? || %w[-H --help].detect { |o| ARGV.index(o) }
   puts "  -H, --help      Show this message and quit."
   puts "  -v, --version   Show the program version number and quit."
 elsif ARGV[0] == 'setup'
-  ensure_minigems_in_load_path!(true)
+  # Install minigems.rb in the ruby search path.
+  ensure_in_load_path!(true)
 elsif ARGV[0] == 'prepare'
+  # Adapt a gems' executable wrapper to use minigems.
   ARGV.shift # skip prepare command argument
-  ensure_minigems_in_load_path!(ARGV.empty?)
+  ensure_in_load_path!(ARGV.empty?)
   ARGV.each do |gem_name|
     next unless (gem_spec = Gem.source_index.search(gem_name).last)
     adapt_executables_for(gem_spec)
   end
-elsif ARGV[0] == 'install'
-  ARGV.shift # skip install command argument
-  ensure_minigems_in_load_path!
-  cmd = Gem::GemRunner.new.run_command(:install, ARGV)
-  cmd.get_all_referenced_gem_specs.each do |gemspec|
-    adapt_executables_for(gemspec)
-  end
-elsif ARGV[0] == 'update'
-  ARGV.shift # skip update command argument
-  ensure_minigems_in_load_path!(ARGV.index('--system'))
-  cmd = Gem::GemRunner.new.run_command(:update, ARGV)
+elsif ARGV[0] == 'install' || ARGV[0] == 'update'
+  # Install or update a rubygem and prepare it for minigems.
+  command = ARGV.shift.to_sym # skip command argument
+  ensure_in_load_path!
+  cmd = Gem::GemRunner.new.run_command(command, ARGV)
   cmd.get_all_referenced_gem_specs.each do |gemspec|
     adapt_executables_for(gemspec)
   end
 else
-  Gem::GemRunner.new.run_command(ARGV[0] || 'help', ARGV)
+  # Proxy to rubygems for any other command.
+  #  
+  # We need to preserve the original ARGV to use for passing gem options
+  # to source gems.  If there is a -- in the line, strip all options after
+  # it...its for the source building process.
+  args = !ARGV.include?("--") ? ARGV.clone : ARGV[0...ARGV.index("--")]
+  Gem::GemRunner.new.run(args)
 end
