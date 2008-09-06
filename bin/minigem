@@ -8,10 +8,12 @@ if ARGV.empty? || %w[-H --help].detect { |o| ARGV.index(o) }
   # Show some usage information.
   program = File.basename($0)
   puts "Usage:"
-  puts "  #{program} [options]"
-  puts "  #{program} GEMNAME [GEMNAME ...]"
+  puts "  #{program} setup"
+  puts "  #{program} remove"
+  puts "  #{program} prepare GEMNAME [GEMNAME ...]"
   puts "  #{program} install GEMNAME [GEMNAME ...] [options] -- --build-flags [options]"
-  puts "  #{program} update GEMNAME [GEMNAME ...] [options]"
+  puts "  #{program} update  GEMNAME [GEMNAME ...] [options]"
+  puts "  #{program} <command> GEMNAME [GEMNAME ...] [options]"
   puts "  "
   puts "Description:"
   puts "  Manage 'minigems': a lightweight drop-in replacement for the rubygems"
@@ -40,6 +42,17 @@ if ARGV.empty? || %w[-H --help].detect { |o| ARGV.index(o) }
 elsif ARGV[0] == 'setup'
   # Install minigems.rb in the ruby search path.
   ensure_in_load_path!(true)
+elsif ARGV[0] == 'uninstall'
+  command = ARGV.shift.to_sym # skip command argument
+  # Uninstall minigems.rb from the ruby search path.
+  remove_minigems! if ARGV.empty?
+  # Remove any gems that have been specified.
+  unless ARGV.empty?
+    cmd = Gem::GemRunner.new.run_command(command, ARGV)
+    cmd.get_all_referenced_gem_specs.each do |gemspec|
+      adapt_executables_for(gemspec)
+    end
+  end
 elsif ARGV[0] == 'prepare'
   # Adapt a gems' executable wrapper to use minigems.
   ARGV.shift # skip prepare command argument
@@ -52,9 +65,12 @@ elsif ARGV[0] == 'install' || ARGV[0] == 'update'
   # Install or update a rubygem and prepare it for minigems.
   command = ARGV.shift.to_sym # skip command argument
   ensure_in_load_path!
-  cmd = Gem::GemRunner.new.run_command(command, ARGV)
-  cmd.get_all_referenced_gem_specs.each do |gemspec|
-    adapt_executables_for(gemspec)
+  # Remove any gems that have been specified.
+  unless ARGV.empty?
+    cmd = Gem::GemRunner.new.run_command(command, ARGV)
+    cmd.get_all_referenced_gem_specs.each do |gemspec|
+      adapt_executables_for(gemspec)
+    end
   end
 else
   # Proxy to rubygems for any other command.
