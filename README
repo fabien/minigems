@@ -1,10 +1,10 @@
 MiniGems
 ========
 
-A lightweight drop-in replacement for the rubygems to facilitate faster loading 
-of gems as well as reducing memory consumption considerably. Depending on the 
+A lightweight drop-in replacement for rubygems to facilitate faster loading of
+gems as well as reducing memory consumption considerably. Depending on the
 amount of gems you have installed about 10-20 MB less RAM will be used, compared
-to the full rubygems library version, which keeps a cache of all gems and files 
+to the full rubygems library version, which keeps a cache of all gems and files
 referenced by them.
 
 Minigems handles loading of required gems from your scripts. If however, other 
