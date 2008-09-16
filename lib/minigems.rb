@@ -2,54 +2,10 @@ module Gem
   module MiniGems
     VERSION = "0.0.1"
     
-    FULL_RUBYGEMS_METHODS = %w[
-      activate
-      all_load_paths
-      available?
-      binary_mode
-      bindir
-      cache
-      clear_paths
-      config_file
-      configuration
-      configuration=
-      datadir
-      default_bindir
-      default_dir
-      default_exec_format
-      default_path
-      default_sources
-      default_system_source_cache_dir
-      default_user_source_cache_dir
-      deflate
-      dir
-      ensure_gem_subdirectories
-      gunzip
-      gzip
-      inflate
-      latest_load_paths
-      load_path_insert_index
-      loaded_specs
-      manage_gems
-      marshal_version
-      path
-      platforms
-      platforms=
-      prefix
-      read_binary
-      refresh
-      required_location
-      ruby
-      ruby_version
-      searcher
-      source_index
-      sources
-      suffix_pattern
-      suffixes
-      use_paths
-      user_home
-      win_platform?
-    ]
+    # The next line needs to be kept exactly as shown; it's being replaced
+    # during minigems installation.
+    FULL_RUBYGEMS_METHODS = []
+    
   end
 end
 
@@ -64,21 +20,6 @@ unless $LOADED_FEATURES.include?("rubygems.rb")
   require "rubygems/dependency"
   require "rubygems/specification"
   require "rbconfig"
-
-  # Methods we're implementing, based on standard Gem but with our own logic
-  # - Kernel#gem
-  # - Kernel#require
-  # - Gem.activate
-  # - Gem.available?
-  # - Gem.path
-  # - Gem.default_path
-  # - Gem.clear_paths
-  # - Gem.refresh
-  # - Gem.report_activate_error
-
-  # Methods Gem prelude adds in addition to the standard methods
-  # - Gem.latest_gem_paths
-  # - Gem.minigems?
 
   module Kernel
   
@@ -115,18 +56,17 @@ unless $LOADED_FEATURES.include?("rubygems.rb")
   
   module Gem
   
+    CORE_GEM_METHODS = Gem.methods(false)
+  
     class Exception < RuntimeError; end
   
     class LoadError < ::LoadError
       attr_accessor :name, :version_requirement
     end
   
-    # Keep track of the rubygems 'mode'.
-    @minigems = !Gem.const_defined?(:Builder)
-  
     # Whether minigems is being used or full rubygems has taken over.
     def self.minigems?
-      @minigems
+      not const_defined?(:SourceIndex)
     end
   
     # Keep track of loaded gems, maps gem name to full_name.
@@ -310,14 +250,12 @@ unless $LOADED_FEATURES.include?("rubygems.rb")
     # Load the full rubygems suite, at which point all minigems logic
     # is being overridden, so all regular methods and classes are available.
     def self.load_full_rubygems!
-      @minigems = false
-      # Clear out any prelude methods
+      # Clear out any minigems methods
       class << self
-        Gem::MINIGEMS_METHODS.each do |method_name|
+        (MINIGEMS_METHODS - CORE_GEM_METHODS).each do |method_name|
           undef_method method_name
         end
       end
-    
       # Re-alias the 'require' method back to its original.
       ::Kernel.module_eval { alias_method :require, :gem_original_require }
       require $LOADED_FEATURES.delete("rubygems.rb")

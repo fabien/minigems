@@ -47,7 +47,7 @@ module Gem
   
       def minigems_path
         @minigems_path ||= begin
-          if (gem_spec = Gem.source_index.search('minigems').last)
+          if (gem_spec = Gem.source_index.find_name('minigems').sort_by { |g| g.version }.last)
             gem_spec.full_gem_path
           else
             raise "Minigems gem not found!"
@@ -74,7 +74,14 @@ module Gem
         if force || !File.exists?(install_path)
           if File.exists?(source_path = File.join(minigems_path, 'lib', 'minigems.rb'))
             begin
-              FileUtils.copy_file(source_path, install_path)
+              minigems_code = File.read(source_path)
+              placeholder = "FULL_RUBYGEMS_METHODS = []"
+              replacement = "FULL_RUBYGEMS_METHODS = %w[\n      "
+              replacement << (Gem.methods - Object.methods).sort.join("\n      ")
+              replacement << "\n    ]"
+              File.open(install_path, 'w') do |f|
+                f.write minigems_code.sub(placeholder, replacement)
+              end
               puts "Installed minigems at #{install_path}"
             rescue Errno::EACCES
               puts "Could not install minigems at #{install_path} (try sudo)"
