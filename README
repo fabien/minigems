@@ -26,6 +26,7 @@ common 'require "rubygems"' statement:
 
 require 'minigems'
 
-There's currently a patch pending on RubyForge, to get minigems into the standard, rubygems system. If you like minigems, please post a vote/followup:
+There's currently a patch pending on RubyForge, to get minigems into the 
+standard, rubygems system. If you like minigems, please post a vote/followup:
 
 http://rubyforge.org/tracker/?func=detail&atid=577&aid=21979&group_id=126
