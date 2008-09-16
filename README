@@ -17,9 +17,9 @@ ruby scripts.
 
 MiniGems is enabled on a per-gem basis. To do so, you run 'minigem prepare', for
 example, say we want the binary executables for merb-core (the 'merb' command)
-to use minigems (most likely with sudo permissions):
+to use minigems:
 
-minigem prepare merb-core
+sudo minigem prepare merb-core
 
 To use minigems in your own scripts, use the following construct, instead of the 
 common 'require "rubygems"' statement:
