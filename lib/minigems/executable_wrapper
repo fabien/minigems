@@ -5,7 +5,7 @@ SHEBANG
 # The application 'EXECUTABLE_NAME' is installed as part of a gem (GEM_NAME),
 # and this file is here to facilitate running it.
 
-require 'minigems'
+require 'GEM_MODE'
 
 version = ">= 0"
 

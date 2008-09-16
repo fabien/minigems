@@ -21,6 +21,10 @@ to use minigems:
 
 sudo minigem prepare merb-core
 
+And to revert back to rubygems:
+
+sudo minigem revert merb-core
+
 To use minigems in your own scripts, use the following construct, instead of the 
 common 'require "rubygems"' statement:
 

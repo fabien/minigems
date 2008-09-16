@@ -11,6 +11,7 @@ if ARGV.empty? || %w[-H --help].detect { |o| ARGV.index(o) }
   puts "  #{program} setup"
   puts "  #{program} remove"
   puts "  #{program} prepare GEMNAME [GEMNAME ...]"
+  puts "  #{program} revert  GEMNAME [GEMNAME ...]"
   puts "  #{program} install GEMNAME [GEMNAME ...] [options] -- --build-flags [options]"
   puts "  #{program} update  GEMNAME [GEMNAME ...] [options]"
   puts "  #{program} <command> GEMNAME [GEMNAME ...] [options]"
@@ -60,6 +61,14 @@ elsif ARGV[0] == 'prepare'
   ARGV.each do |gem_name|
     next unless (gem_spec = Gem.source_index.find_name(gem_name).sort_by { |g| g.version }.last)
     adapt_executables_for(gem_spec)
+  end
+elsif ARGV[0] == 'revert'
+  # Adapt a gems' executable wrapper to use rubygems.
+  ARGV.shift # skip prepare command argument
+  ensure_in_load_path!(ARGV.empty?)
+  ARGV.each do |gem_name|
+    next unless (gem_spec = Gem.source_index.find_name(gem_name).sort_by { |g| g.version }.last)
+    revert_executables_for(gem_spec)
   end
 elsif ARGV[0] == 'install' || ARGV[0] == 'update'
   # Install or update a rubygem and prepare it for minigems.

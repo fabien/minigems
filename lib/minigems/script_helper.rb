@@ -60,13 +60,35 @@ module Gem
           next if executable == 'minigem' # better not modify minigem itself
           if File.exists?(wrapper_path = File.join(Gem.bindir, executable))
             wrapper_code = interpolate_wrapper(gemspec.name, executable)
-            if File.open(wrapper_path, 'w') { |f| f.write(wrapper_code) }
-              puts "Adapted #{wrapper_path} to use minigems instead of rubygems."
-            else
+            begin
+              if File.open(wrapper_path, 'w') { |f| f.write(wrapper_code) }
+                puts "Adapted #{wrapper_path} to use minigems instead of rubygems."
+              else
+                puts "Failed to adapt #{wrapper_path} - maybe you need sudo permissions?"
+              end
+            rescue Errno::EACCES => e
               puts "Failed to adapt #{wrapper_path} - maybe you need sudo permissions?"
-            end
+            end  
           end
         end
+      end
+      
+      def revert_executables_for(gemspec)
+        gemspec.executables.each do |executable|
+          next if executable == 'minigem' # better not modify minigem itself
+          if File.exists?(wrapper_path = File.join(Gem.bindir, executable))
+            wrapper_code = interpolate_wrapper(gemspec.name, executable, 'rubygems')
+            begin
+              if File.open(wrapper_path, 'w') { |f| f.write(wrapper_code) }
+                puts "Reverted #{wrapper_path} to use rubygems instead of minigems."
+              else
+                puts "Failed to revert #{wrapper_path} - maybe you need sudo permissions?"
+              end
+            rescue Errno::EACCES => e
+              puts "Failed to revert #{wrapper_path} - maybe you need sudo permissions?"
+            end
+          end
+        end      
       end
 
       def ensure_in_load_path!(force = false)
@@ -100,10 +122,11 @@ module Gem
         end
       end
       
-      def interpolate_wrapper(gem_name, executable_name)
+      def interpolate_wrapper(gem_name, executable_name, mode = 'minigems')
         @template_code ||= File.read(File.join(minigems_path, 'lib', 'minigems', 'executable_wrapper'))
         vars = { 'GEM_NAME' => gem_name, 'EXECUTABLE_NAME' => executable_name }
         vars['SHEBANG'] = "#!/usr/bin/env " + Gem::ConfigMap[:ruby_install_name]
+        vars['GEM_MODE'] = mode
         vars.inject(@template_code) { |str,(k,v)| str.gsub(k,v) }
       end
   
