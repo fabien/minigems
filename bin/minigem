@@ -9,7 +9,6 @@ if ARGV.empty? || %w[-H --help].detect { |o| ARGV.index(o) }
   program = File.basename($0)
   puts "Usage:"
   puts "  #{program} setup"
-  puts "  #{program} remove"
   puts "  #{program} prepare GEMNAME [GEMNAME ...]"
   puts "  #{program} revert  GEMNAME [GEMNAME ...]"
   puts "  #{program} install GEMNAME [GEMNAME ...] [options] -- --build-flags [options]"

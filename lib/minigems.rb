@@ -1,6 +1,6 @@
 module Gem
   module MiniGems
-    VERSION = "0.0.1"
+    VERSION = "0.9.0"
     
     # The next line needs to be kept exactly as shown; it's being replaced
     # during minigems installation.

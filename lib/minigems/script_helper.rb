@@ -116,14 +116,16 @@ module Gem
         if File.exists?(install_path = File.join(Gem::ConfigMap[:sitelibdir], 'minigems.rb'))
           if FileUtils.rm(install_path)
             puts "Succesfully removed #{install_path}"
-          else
-            puts "Could not remove #{install_path} (try sudo)"
+            return
           end
         end
+      rescue => e
+        puts e.message
+        puts "Could not remove #{install_path} (try sudo)"
       end
       
       def interpolate_wrapper(gem_name, executable_name, mode = 'minigems')
-        @template_code ||= File.read(File.join(minigems_path, 'lib', 'minigems', 'executable_wrapper'))
+        @template_code ||= File.read(File.join(minigems_path, 'lib', 'minigems', 'executable_wrapper'))        
         vars = { 'GEM_NAME' => gem_name, 'EXECUTABLE_NAME' => executable_name }
         vars['SHEBANG'] = "#!/usr/bin/env " + Gem::ConfigMap[:ruby_install_name]
         vars['GEM_MODE'] = mode
