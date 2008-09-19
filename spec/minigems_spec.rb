@@ -51,24 +51,28 @@ describe Gem::MiniGems do
     gem_bin_path = File.join(@gem_dir, "gems", "gem_with_lib-0.0.2", "bin")
     $LOAD_PATH.should_not include(gem_lib_path)
     gem("gem_with_lib").should be_true
-    $LOAD_PATH.first.should == gem_lib_path
-    $LOAD_PATH.should include(gem_bin_path)
+    $LOAD_PATH.first.should == gem_bin_path
+    $LOAD_PATH.should include(gem_lib_path)
     $LOAD_PATH.select { |path| path == gem_lib_path }.length.should == 1
     lambda { GemWithLib::Awesome }.should raise_error(NameError)
   end
   
   it "uses 'gem' to setup additional load path entries (for a specific gem version)" do
     gem_lib_path = File.join(@gem_dir, "gems", "gem_with_lib-0.0.1", "lib")
+    gem_bin_path = File.join(@gem_dir, "gems", "gem_with_lib-0.0.1", "bin")
     $LOAD_PATH.should_not include(gem_lib_path)
     gem("gem_with_lib", "0.0.1").should be_true
-    $LOAD_PATH.first.should == gem_lib_path
+    $LOAD_PATH.first.should == gem_bin_path
+    $LOAD_PATH.should include(gem_lib_path)
   end
   
   it "uses 'gem' to setup additional load path entries (for a gem version requirement)" do
     gem_lib_path = File.join(@gem_dir, "gems", "gem_with_lib-0.0.2", "lib")
+    gem_bin_path = File.join(@gem_dir, "gems", "gem_with_lib-0.0.2", "bin")
     $LOAD_PATH.should_not include(gem_lib_path)
     gem("gem_with_lib", ">0.0.1").should be_true
-    $LOAD_PATH.first.should == gem_lib_path
+    $LOAD_PATH.first.should == gem_bin_path
+    $LOAD_PATH.should include(gem_lib_path)
   end
   
   it "correctly requires a file from the load path" do

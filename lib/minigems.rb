@@ -114,20 +114,18 @@ unless $LOADED_FEATURES.include?("rubygems.rb")
         elsif already_loaded
           return false
         end
-      
+            
         # Keep track of loaded gems - by name instead of full specs (memory!)
         self.loaded_gems[gem_spec.name] = gem_spec.full_name
       
         # Load dependent gems first
         gem_spec.runtime_dependencies.each { |dep_gem| activate(dep_gem) }
-            
-        # Add gem bindir path to $LOAD_PATH
-        unless gem_spec.executables.empty? 
-          $LOAD_PATH.unshift File.join(gem_spec.full_gem_path, gem_spec.bindir)
-        end
+        
+        # bin directory must come before library directories
+        gem_spec.require_paths.unshift(gem_spec.bindir) if gem_spec.bindir
       
         # Add gem require paths to $LOAD_PATH
-        gem_spec.require_paths.each do |require_path|
+        gem_spec.require_paths.reverse.each do |require_path|
           $LOAD_PATH.unshift File.join(gem_spec.full_gem_path, require_path)
         end
         return true

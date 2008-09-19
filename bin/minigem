@@ -72,7 +72,7 @@ elsif ARGV[0] == 'revert'
 elsif ARGV[0] == 'install' || ARGV[0] == 'update'
   # Install or update a rubygem and prepare it for minigems.
   command = ARGV.shift.to_sym # skip command argument
-  ensure_in_load_path!
+  ensure_in_load_path!(ARGV.empty?)
   # Remove any gems that have been specified.
   unless ARGV.empty?
     cmd = Gem::GemRunner.new.run_command(command, ARGV)
