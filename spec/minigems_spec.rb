@@ -89,8 +89,10 @@ describe Gem::MiniGems do
   # The following specs can only be run in isolation as they load up the
   # full rubygems library - which cannot really be undone!
   # Comment out the specs above, including before/after setup.
-  
+  # 
   # it "should load full rubygems if an unimplemented method is called" do
+  #   # will only work if pre-installed minigems.rb is used!
+  #   # so use: require 'minigems'
   #   Gem.should be_minigems
   #   lambda { Gem.source_index }.should_not raise_error(NoMethodError)
   #   Gem.should_not be_minigems
