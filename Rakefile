@@ -70,7 +70,7 @@ end
 
 desc "Install the gem"
 task :install => [:clean, :package] do
-  sh %{#{sudo} gem install #{install_home} pkg/#{GEM_NAME}-#{GEM_VERSION} --no-wrapper --no-update-sources --no-rdoc --no-ri}
+  sh %{#{sudo} #{Gem.ruby} -S gem install #{install_home} pkg/#{GEM_NAME}-#{GEM_VERSION} --no-wrapper --no-update-sources --no-rdoc --no-ri}
 end
 
 namespace :jruby do

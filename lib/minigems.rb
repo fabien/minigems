@@ -176,9 +176,12 @@ unless $LOADED_FEATURES.include?("rubygems.rb")
       @default_path ||= if defined? RUBY_FRAMEWORK_VERSION then
         File.join File.dirname(RbConfig::CONFIG["sitedir"]), 'Gems', 
           RbConfig::CONFIG["ruby_version"]
-      elsif defined? RUBY_ENGINE then
-        File.join RbConfig::CONFIG["libdir"], RUBY_ENGINE, 'gems', 
-          RbConfig::CONFIG["ruby_version"]
+      elsif defined?(RUBY_ENGINE) && File.directory?(
+        File.join(RbConfig::CONFIG["libdir"], RUBY_ENGINE, 'gems', 
+          RbConfig::CONFIG["ruby_version"])
+        )
+          File.join RbConfig::CONFIG["libdir"], RUBY_ENGINE, 'gems', 
+            RbConfig::CONFIG["ruby_version"]
       else
         File.join RbConfig::CONFIG["libdir"], 'ruby', 'gems', 
           RbConfig::CONFIG["ruby_version"]
