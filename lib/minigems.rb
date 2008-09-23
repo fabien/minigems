@@ -5,12 +5,6 @@ module Gem
     # The next line needs to be kept exactly as shown; it's being replaced
     # during minigems installation.
     FULL_RUBYGEMS_METHODS = []
-    
-    def self.snake_case(str)
-      return str.downcase if str =~ /^[A-Z]+$/
-      str.gsub(/([A-Z]+)(?=[A-Z][a-z]?)|\B[A-Z]/, '_\&') =~ /_*(.*)/
-        return $+.downcase
-    end
 
     def self.camel_case(str)
       return str if str !~ /_/ && str =~ /[A-Z]+.*/
