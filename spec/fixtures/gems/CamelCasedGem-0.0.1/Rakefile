@@ -3,8 +3,8 @@ require 'rake/gempackagetask'
 require 'rubygems/specification'
 require 'date'
 
-GEM = "gem_with_lib"
-GEM_VERSION = "0.0.2"
+GEM = "CamelCasedGem"
+GEM_VERSION = "0.0.1"
 AUTHOR = "Your Name"
 EMAIL = "Your Email"
 HOMEPAGE = "http://example.com"
@@ -26,7 +26,6 @@ spec = Gem::Specification.new do |s|
   # s.add_dependency "foo"
   
   s.require_path = 'lib'
-  s.executables  = %w( gem_with_lib )
   s.files = %w(LICENSE README Rakefile TODO) + Dir.glob("{lib,specs}/**/*")
 end
 

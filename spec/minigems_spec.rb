@@ -75,15 +75,39 @@ describe Gem::MiniGems do
     $LOAD_PATH.should include(gem_lib_path)
   end
   
-  it "correctly requires a file from the load path" do
-    gem("gem_with_lib").should be_true
-    require("gem_with_lib").should be_true
-    lambda { GemWithLib::Awesome }.should_not raise_error(NameError)
-    GemWithLib::VERSION.should == "0.0.2"
+  it "returns all the latest gem versions' paths" do
+    Gem.latest_gem_paths.should == [
+      File.join(@gem_dir, "gems", "CamelCasedGem-0.0.1"),
+      File.join(@gem_dir, "gems", "awesome-gem-0.0.2"),
+      File.join(@gem_dir, "gems", "gem_with_lib-0.0.2")
+    ]
   end
   
-  it "returns all the latest gem versions' paths" do
-    Gem.latest_gem_paths.should == [File.join(@gem_dir, "gems", "gem_with_lib-0.0.2")]
+  describe "correctly requires a file from the load path" do
+  
+    it "for gems following the normal naming conventions (underscore)" do
+      require("gem_with_lib").should be_true
+      lambda { GemWithLib::Awesome }.should_not raise_error(NameError)
+      GemWithLib::VERSION.should == "0.0.2"
+    end
+  
+    it "for gems following the normal naming conventions (hyphen)" do
+      require("awesome-gem").should be_true
+      lambda { AwesomeGem::Awesome }.should_not raise_error(NameError)
+      AwesomeGem::VERSION.should == "0.0.2"
+    end
+    
+    it "for gems with a CamelCased package name" do
+      require("camel_cased_gem").should be_true
+      lambda { CamelCasedGem::Awesome }.should_not raise_error(NameError)
+      CamelCasedGem::VERSION.should == "0.0.1"
+    end
+    
+    it "for files in a gems' load path" do
+      require("super_sonic").should be_true
+      lambda { AwesomeGem::SuperSonic }.should_not raise_error(NameError)
+    end
+    
   end
   
   # The following specs can only be run in isolation as they load up the

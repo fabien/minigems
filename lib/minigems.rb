@@ -6,6 +6,17 @@ module Gem
     # during minigems installation.
     FULL_RUBYGEMS_METHODS = []
     
+    def self.snake_case(str)
+      return str.downcase if str =~ /^[A-Z]+$/
+      str.gsub(/([A-Z]+)(?=[A-Z][a-z]?)|\B[A-Z]/, '_\&') =~ /_*(.*)/
+        return $+.downcase
+    end
+
+    def self.camel_case(str)
+      return str if str !~ /_/ && str =~ /[A-Z]+.*/
+      str.split('_').map{|e| e.capitalize}.join
+    end
+    
   end
 end
 
@@ -103,32 +114,11 @@ unless $LOADED_FEATURES.include?("rubygems.rb")
     # Gem::Requirement and Gem::Version documentation.
     def self.activate(gem, *version_requirements)
       if match = find(gem, *version_requirements)
-        # Load and initialize the gemspec
-        gem_spec = Gem::Specification.load(gem_path = match.first)
-        gem_spec.loaded_from = gem_path
-      
-        # Raise an exception if the same spec has already been loaded - except for identical matches
-        if (already_loaded = self.loaded_gems[gem_spec.name]) && gem_spec.full_name != already_loaded
-          raise Gem::Exception, "can't activate #{gem_spec.name}, already activated #{already_loaded}"
-        # If it's an identical match, we're done activating
-        elsif already_loaded
-          return false
-        end
-            
-        # Keep track of loaded gems - by name instead of full specs (memory!)
-        self.loaded_gems[gem_spec.name] = gem_spec.full_name
-      
-        # Load dependent gems first
-        gem_spec.runtime_dependencies.each { |dep_gem| activate(dep_gem) }
-        
-        # bin directory must come before library directories
-        gem_spec.require_paths.unshift(gem_spec.bindir) if gem_spec.bindir
-      
-        # Add gem require paths to $LOAD_PATH
-        gem_spec.require_paths.reverse.each do |require_path|
-          $LOAD_PATH.unshift File.join(gem_spec.full_gem_path, require_path)
-        end
-        return true
+        activate_gem_from_path(match.first)
+      elsif match = find(MiniGems.camel_case(gem), *version_requirements)
+        activate_gem_from_path(match.first)
+      elsif activate_from_source_path(gem)
+        true # The gem for the specified file was loaded correctly
       else
         unless gem.respond_to?(:name) && gem.respond_to?(:version_requirements)
           gem = Gem::Dependency.new(gem, version_requirements)
@@ -213,8 +203,66 @@ unless $LOADED_FEATURES.include?("rubygems.rb")
     end
   
     protected
+    
+    # Activate a gem by specifying a path to a gemspec.
+    def self.activate_gem_from_path(gem_path, gem_spec = nil)
+      # Load and initialize the gemspec
+      gem_spec ||= Gem::Specification.load(gem_path)
+      gem_spec.loaded_from = gem_path
+    
+      # Raise an exception if the same spec has already been loaded - except for identical matches
+      if (already_loaded = self.loaded_gems[gem_spec.name]) && gem_spec.full_name != already_loaded
+        raise Gem::Exception, "can't activate #{gem_spec.name}, already activated #{already_loaded}"
+      # If it's an identical match, we're done activating
+      elsif already_loaded
+        return false
+      end
+          
+      # Keep track of loaded gems - by name instead of full specs (memory!)
+      self.loaded_gems[gem_spec.name] = gem_spec.full_name
+    
+      # Load dependent gems first
+      gem_spec.runtime_dependencies.each { |dep_gem| activate(dep_gem) }
+      
+      # bin directory must come before library directories
+      gem_spec.require_paths.unshift(gem_spec.bindir) if gem_spec.bindir
+    
+      # Add gem require paths to $LOAD_PATH
+      gem_spec.require_paths.reverse.each do |require_path|
+        $LOAD_PATH.unshift File.join(gem_spec.full_gem_path, require_path)
+      end
+      return true
+    end
+    
+    # Find a file in the source path and activate its gem (best/highest match).
+    def self.activate_from_source_path(name)
+      matched_paths = self.path.map do |path| 
+        [Pathname.new("#{path}/gems"), Dir["#{path}/gems/**/#{name}.rb"]]
+      end
+      versions = matched_paths.inject([]) do |versions, (root_path, paths)|
+        paths.each do |matched_path|
+          dir_name = Pathname.new(matched_path).relative_path_from(root_path).to_s.split('/').first
+          gemspec_path = File.join(File.dirname(root_path), 'specifications', "#{dir_name}.gemspec")
+          if File.exists?(gemspec_path)
+            # Now check if the file was in a valid require_path
+            gem_spec = Gem::Specification.load(gemspec_path)
+            gem_spec.loaded_from = gemspec_path
+            gem_dir = Pathname.new("#{root_path}/#{dir_name}")
+            relative_file_path = Pathname.new(matched_path).relative_path_from(gem_dir).to_s
+            if gem_spec.require_paths.any? { |req| relative_file_path.index(req) == 0 }
+              versions << gem_spec
+            end
+          end
+        end
+        versions
+      end
+      unless versions.empty?
+        spec = versions.max { |a, b| a.version <=> b.version }
+        activate_gem_from_path(spec.loaded_from, spec)
+      end
+    end
 
-    # Find all gem specs for the requested gem.
+    # Find the best (highest) matching gem version.
     def self.find(gem, *version_requirements)
       version_requirements = Gem::Requirement.default if version_requirements.empty?
       unless gem.respond_to?(:name) && gem.respond_to?(:version_requirements)
@@ -233,7 +281,6 @@ unless $LOADED_FEATURES.include?("rubygems.rb")
         end
         versions
       end
-      # Find the best (highest) matching gem version
       versions.max { |a, b| a.last <=> b.last }
     end
   
