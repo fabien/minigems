@@ -15,7 +15,7 @@ GEM_EMAIL  = "info@atelierfabien.be"
 
 GEM_NAME    = "minigems"
 PKG_BUILD   = ENV['PKG_BUILD'] ? '.' + ENV['PKG_BUILD'] : ''
-GEM_VERSION = (Gem::MiniGems::VERSION || "0.9.0") + PKG_BUILD
+GEM_VERSION = (Gem::MiniGems::VERSION || "0.9.2") + PKG_BUILD
 
 RELEASE_NAME    = "REL #{GEM_VERSION}"
 

@@ -1,6 +1,6 @@
 module Gem
   module MiniGems
-    VERSION = "0.9.0"
+    VERSION = "0.9.2"
     
     # The next line needs to be kept exactly as shown; it's being replaced
     # during minigems installation.
@@ -25,6 +25,7 @@ unless $LOADED_FEATURES.include?("rubygems.rb")
   require "rubygems/dependency"
   require "rubygems/specification"
   require "rbconfig"
+  require "pathname"
 
   module Kernel
   
