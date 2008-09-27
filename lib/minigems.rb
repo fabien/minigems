@@ -1,7 +1,8 @@
 module Gem
+unless const_defined?(:MiniGems)
   module MiniGems
     VERSION = "0.9.2"
-    
+  
     # The next line needs to be kept exactly as shown; it's being replaced
     # during minigems installation.
     FULL_RUBYGEMS_METHODS = []
@@ -10,8 +11,9 @@ module Gem
       return str if str !~ /_/ && str =~ /[A-Z]+.*/
       str.split('_').map{|e| e.capitalize}.join
     end
-    
+  
   end
+end
 end
 
 # Enable minigems unless rubygems has already loaded.
