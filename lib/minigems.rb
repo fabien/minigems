@@ -1,7 +1,7 @@
 module Gem
 unless const_defined?(:MiniGems)
   module MiniGems
-    VERSION = "0.9.2"
+    VERSION = "0.9.3"
   
     # The next line needs to be kept exactly as shown; it's being replaced
     # during minigems installation.
@@ -237,7 +237,7 @@ unless $LOADED_FEATURES.include?("rubygems.rb")
     # Find a file in the source path and activate its gem (best/highest match).
     def self.activate_from_source_path(name)
       matched_paths = self.path.map do |path| 
-        [Pathname.new("#{path}/gems"), Dir["#{path}/gems/**/#{name}.rb"]]
+        [Pathname.new("#{path}/gems"), Dir["#{path}/gems/**/#{name}{,.rb,.rbw,.so,.bundle,.dll,.sl,.jar}"]]
       end
       versions = matched_paths.inject([]) do |versions, (root_path, paths)|
         paths.each do |matched_path|
@@ -248,8 +248,8 @@ unless $LOADED_FEATURES.include?("rubygems.rb")
             gem_spec = Gem::Specification.load(gemspec_path)
             gem_spec.loaded_from = gemspec_path
             gem_dir = Pathname.new("#{root_path}/#{dir_name}")
-            relative_file_path = Pathname.new(matched_path).relative_path_from(gem_dir).to_s
-            if gem_spec.require_paths.any? { |req| relative_file_path.index(req) == 0 }
+            relative_dir = File.dirname(Pathname.new(matched_path).relative_path_from(gem_dir).to_s)
+            if gem_spec.require_paths.any? { |req| relative_dir == req }
               versions << gem_spec
             end
           end
