@@ -248,8 +248,10 @@ unless $LOADED_FEATURES.include?("rubygems.rb")
             gem_spec = Gem::Specification.load(gemspec_path)
             gem_spec.loaded_from = gemspec_path
             gem_dir = Pathname.new("#{root_path}/#{dir_name}")
-            relative_dir = File.dirname(Pathname.new(matched_path).relative_path_from(gem_dir).to_s)
-            if gem_spec.require_paths.any? { |req| relative_dir == req }
+            
+            filename = name + File.extname(matched_path)
+            relative_file = Pathname.new(matched_path).relative_path_from(gem_dir).to_s           
+            if gem_spec.require_paths.any? { |req| File.join(req, filename) == relative_file }
               versions << gem_spec
             end
           end
