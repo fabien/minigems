@@ -1,0 +1,8 @@
+0.9.4 - 10/01/2008:
+* Uses uses minigems/core (from the RubyGems patch).
+* Refactored Gem.activate and Kernel#require - more robust matching of files.
+* If a gem/required file cannot be found by minigems, as a last resort the
+  full rubygems system and index is loaded.
+* Set $MINIGEMS_DEBUG = true to see some details on when minigems switches to
+  the full rubygems system.
+* Will not try to load rubygems for dynamically created libs from RubyInline.

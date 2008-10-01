@@ -104,6 +104,8 @@ module Gem
               File.open(install_path, 'w') do |f|
                 f.write minigems_code.sub(placeholder, replacement)
               end
+              minigems_dir = File.join(minigems_path, 'lib', 'minigems')
+              FileUtils.cp_r(minigems_dir, Gem::ConfigMap[:sitelibdir])
               puts "Installed minigems at #{install_path}"
             rescue Errno::EACCES
               puts "Could not install minigems at #{install_path} (try sudo)"
@@ -113,8 +115,9 @@ module Gem
       end
       
       def remove_minigems!
+        minigems_dir = File.join(Gem::ConfigMap[:sitelibdir], 'minigems')
         if File.exists?(install_path = File.join(Gem::ConfigMap[:sitelibdir], 'minigems.rb'))
-          if FileUtils.rm(install_path)
+          if FileUtils.rm(install_path) && FileUtils.rm_rf(minigems_dir)
             puts "Succesfully removed #{install_path}"
             return
           end

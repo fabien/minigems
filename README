@@ -34,6 +34,21 @@ rescue LoadError
   require 'rubygems'
 end
 
+For best performance, use the Kernel#gem() method to load up the correct gem,
+before doing any requires from it, preventing a more expensive glob operation.
+
+The following:
+
+require 'spec/task/spectask'
+
+Can be easily improved as follows:
+
+gem 'rspec'
+require 'spec/task/spectask'
+
+This is especially the case when there's no one-to-one mapping between the
+file to require and de gem name (spec vs. rspec in the example above).
+
 There's currently a patch pending on RubyForge, to get minigems into the 
 standard, rubygems system. If you like minigems, please post a vote/followup:
 

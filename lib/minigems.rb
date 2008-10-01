@@ -1,8 +1,9 @@
 module Gem
 unless const_defined?(:MiniGems)
   module MiniGems
-    VERSION = "0.9.3"
-  
+    
+    VERSION = "0.9.4"
+    
     # The next line needs to be kept exactly as shown; it's being replaced
     # during minigems installation.
     FULL_RUBYGEMS_METHODS = []
@@ -19,15 +20,14 @@ end
 # Enable minigems unless rubygems has already loaded.
 unless $LOADED_FEATURES.include?("rubygems.rb")
 
-  # Prevent full rubygems from loading
   $LOADED_FEATURES << "rubygems.rb"
-  require "rubygems/version"
-  require "rubygems/rubygems_version"
-  require "rubygems/requirement"
-  require "rubygems/dependency"
-  require "rubygems/specification"
-  require "rbconfig"
-  require "pathname"
+  require 'minigems/core'
+  require 'rubygems/specification'
+  require 'pathname'
+  
+  unless Gem::MiniGems.const_defined?(:INLINE_REGEXP)
+    Gem::MiniGems::INLINE_REGEXP = /^Inline_.*?\.#{Config::CONFIG['DLEXT']}/
+  end
 
   module Kernel
   
@@ -35,29 +35,37 @@ unless $LOADED_FEATURES.include?("rubygems.rb")
       Gem.activate(name, *versions)
     end
   
-    alias :gem_original_require :require
+    if RUBY_VERSION < '1.9' then
+  
+      alias :gem_original_require :require
 
-    # We replace Ruby's require with our own, which is capable of
-    # loading gems on demand.
-    #
-    # When you call <tt>require 'x'</tt>, this is what happens:
-    # * If the file can be loaded from the existing Ruby loadpath, it
-    #   is.
-    # * Otherwise, installed gems are searched for a file that matches.
-    #   If it's found in gem 'y', that gem is activated (added to the
-    #   loadpath).
-    #
-    # The normal <tt>require</tt> functionality of returning false if
-    # that file has already been loaded is preserved.
-    #
-    def require(path) # :nodoc:
-      gem_original_require path
-    rescue LoadError => load_error
-      if load_error.message =~ /#{Regexp.escape path}\z/ && Gem.activate(path)
-        gem_original_require(path)
-      else
-        raise load_error
+      # We replace Ruby's require with our own, which is capable of
+      # loading gems on demand.
+      #
+      # When you call <tt>require 'x'</tt>, this is what happens:
+      # * If the file can be loaded from the existing Ruby loadpath, it
+      #   is.
+      # * Otherwise, installed gems are searched for a file that matches.
+      #   If it's found in gem 'y', that gem is activated (added to the
+      #   loadpath).
+      #
+      # The normal <tt>require</tt> functionality of returning false if
+      # that file has already been loaded is preserved.
+      #
+      def require(path) # :nodoc:
+        gem_original_require path
+      rescue LoadError => load_error
+        if File.basename(path).match(Gem::MiniGems::INLINE_REGEXP)
+          return true # RubyInline dynamicly created .so/.bundle
+        elsif load_error.message =~ /#{Regexp.escape path}\z/ && 
+          (spec = (Gem.find_in_source_path(path) || Gem.find_in_source_index(path)))
+          Gem.activate(spec.name, "= #{spec.version}")
+          gem_original_require(path)
+        else
+          raise load_error
+        end
       end
+      
     end
   
   end
@@ -67,15 +75,6 @@ unless $LOADED_FEATURES.include?("rubygems.rb")
     CORE_GEM_METHODS = Gem.methods(false)
   
     class Exception < RuntimeError; end
-  
-    class LoadError < ::LoadError
-      attr_accessor :name, :version_requirement
-    end
-  
-    # Whether minigems is being used or full rubygems has taken over.
-    def self.minigems?
-      not const_defined?(:SourceIndex)
-    end
   
     # Keep track of loaded gems, maps gem name to full_name.
     def self.loaded_gems
@@ -114,8 +113,6 @@ unless $LOADED_FEATURES.include?("rubygems.rb")
         activate_gem_from_path(match.first)
       elsif match = find(MiniGems.camel_case(gem), *version_requirements)
         activate_gem_from_path(match.first)
-      elsif activate_from_source_path(gem)
-        true # The gem for the specified file was loaded correctly
       else
         unless gem.respond_to?(:name) && gem.respond_to?(:version_requirements)
           gem = Gem::Dependency.new(gem, version_requirements)
@@ -235,9 +232,14 @@ unless $LOADED_FEATURES.include?("rubygems.rb")
     end
     
     # Find a file in the source path and activate its gem (best/highest match).
-    def self.activate_from_source_path(name)
-      matched_paths = self.path.map do |path| 
-        [Pathname.new("#{path}/gems"), Dir["#{path}/gems/**/#{name}{,.rb,.rbw,.so,.bundle,.dll,.sl,.jar}"]]
+    def self.find_in_source_path(path)
+      if ['.rb', '.rbw', '.so', '.bundle', '.dll', '.sl', '.jar'].include?(File.extname(path))
+        file_path = path
+      else
+        file_path = "#{path}.rb"
+      end
+      matched_paths = self.path.map do |gem_path| 
+        [Pathname.new("#{gem_path}/gems"), Dir["#{gem_path}/gems/**/#{file_path}"]]
       end
       versions = matched_paths.inject([]) do |versions, (root_path, paths)|
         paths.each do |matched_path|
@@ -249,19 +251,21 @@ unless $LOADED_FEATURES.include?("rubygems.rb")
             gem_spec.loaded_from = gemspec_path
             gem_dir = Pathname.new("#{root_path}/#{dir_name}")
             
-            filename = name + File.extname(matched_path)
             relative_file = Pathname.new(matched_path).relative_path_from(gem_dir).to_s           
-            if gem_spec.require_paths.any? { |req| File.join(req, filename) == relative_file }
+            if gem_spec.require_paths.any? { |req| File.join(req, file_path) == relative_file }
               versions << gem_spec
             end
           end
         end
         versions
       end
-      unless versions.empty?
-        spec = versions.max { |a, b| a.version <=> b.version }
-        activate_gem_from_path(spec.loaded_from, spec)
-      end
+      versions.max { |a, b| a.version <=> b.version }
+    end
+    
+    # Find a file in the Gem source index - loads up the full rubygems!
+    def self.find_in_source_index(path)
+      puts "Switching from minigems to full rubygems..." if $MINIGEMS_DEBUG
+      Gem.searcher.find(path)
     end
 
     # Find the best (highest) matching gem version.
@@ -297,6 +301,12 @@ unless $LOADED_FEATURES.include?("rubygems.rb")
     # Load the full rubygems suite, at which point all minigems logic
     # is being overridden, so all regular methods and classes are available.
     def self.load_full_rubygems!
+      if $MINIGEMS_DEBUG
+        puts 'Loaded full RubyGems'
+        if !caller.first.to_s.match(/`const_missing'$/) && (require_entry = get_require_caller(caller))
+          puts "A gem was possibly implicitly loaded from #{require_entry}"
+        end
+      end
       # Clear out any minigems methods
       class << self
         (MINIGEMS_METHODS - CORE_GEM_METHODS).each do |method_name|
@@ -306,6 +316,13 @@ unless $LOADED_FEATURES.include?("rubygems.rb")
       # Re-alias the 'require' method back to its original.
       ::Kernel.module_eval { alias_method :require, :gem_original_require }
       require $LOADED_FEATURES.delete("rubygems.rb")
+    end
+    
+    def self.get_require_caller(callstack)
+      require_entry = callstack.find { |c| c =~ /`require'$/ }
+      if require_entry && (idx = callstack.index(require_entry)) && (entry = callstack[idx + 1])
+        entry
+      end
     end
   
     # Record all minigems methods - except the minigems? predicate method.

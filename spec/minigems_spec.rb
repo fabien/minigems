@@ -42,10 +42,6 @@ describe Gem::MiniGems do
     Gem.available?("gem_with_lib", ">0.0.2").should be_false
   end
   
-  it "should raise Gem::LoadError if no matching gem was found" do
-    lambda { gem("unknown_gem") }.should raise_error(Gem::LoadError)
-  end
-  
   it "uses 'gem' to setup additional load path entries" do
     gem_lib_path = File.join(@gem_dir, "gems", "gem_with_lib-0.0.2", "lib")
     gem_bin_path = File.join(@gem_dir, "gems", "gem_with_lib-0.0.2", "bin")
@@ -114,6 +110,14 @@ describe Gem::MiniGems do
   # full rubygems library - which cannot really be undone!
   # Comment out the specs above, including before/after setup.
   # 
+  # Also, use the system-installed minigems (for FULL_RUBYGEMS_METHODS):
+  #
+  # require 'minigems'
+  
+  # it "should raise Gem::LoadError if no matching gem was found" do
+  #   lambda { gem("unknown_gem") }.should raise_error(Gem::LoadError)
+  # end
+  
   # it "should load full rubygems if an unimplemented method is called" do
   #   # will only work if pre-installed minigems.rb is used!
   #   # so use: require 'minigems'
