@@ -57,13 +57,16 @@ unless $LOADED_FEATURES.include?("rubygems.rb")
       rescue LoadError => load_error
         if File.basename(path).match(Gem::MiniGems::INLINE_REGEXP)
           return true # RubyInline dynamicly created .so/.bundle
-        elsif load_error.message =~ /#{Regexp.escape path}\z/ && 
-          (spec = (Gem.find_in_source_path(path) || Gem.find_in_source_index(path)))
-          Gem.activate(spec.name, "= #{spec.version}")
-          gem_original_require(path)
-        else
-          raise load_error
+        elsif load_error.message =~ /#{Regexp.escape path}\z/
+          if !path.include?('/') && (match = Gem.find_name(path))
+            Gem.activate_gem_from_path(match.first)
+            return gem_original_require(path)
+          elsif (spec = (Gem.find_in_source_path(path) || Gem.find_in_source_index(path)))
+            Gem.activate(spec.name, "= #{spec.version}")
+            return gem_original_require(path)
+          end
         end
+        raise load_error
       end
       
     end
@@ -91,7 +94,7 @@ unless $LOADED_FEATURES.include?("rubygems.rb")
     def self.available?(name, *version_requirements)
       version_requirements = Gem::Requirement.default if version_requirements.empty?
       gem = Gem::Dependency.new(name, version_requirements)
-      not find(gem).nil?
+      not find_name(gem).nil?
     end
 
     # Activates an installed gem matching +gem+.  The gem must satisfy
@@ -109,9 +112,9 @@ unless $LOADED_FEATURES.include?("rubygems.rb")
     # More information on version requirements can be found in the
     # Gem::Requirement and Gem::Version documentation.
     def self.activate(gem, *version_requirements)
-      if match = find(gem, *version_requirements)
+      if match = find_name(gem, *version_requirements)
         activate_gem_from_path(match.first)
-      elsif match = find(MiniGems.camel_case(gem), *version_requirements)
+      elsif match = find_name(MiniGems.camel_case(gem), *version_requirements)
         activate_gem_from_path(match.first)
       else
         unless gem.respond_to?(:name) && gem.respond_to?(:version_requirements)
@@ -270,7 +273,7 @@ unless $LOADED_FEATURES.include?("rubygems.rb")
     end
 
     # Find the best (highest) matching gem version.
-    def self.find(gem, *version_requirements)
+    def self.find_name(gem, *version_requirements)
       version_requirements = Gem::Requirement.default if version_requirements.empty?
       unless gem.respond_to?(:name) && gem.respond_to?(:version_requirements)
         gem = Gem::Dependency.new(gem, version_requirements)
