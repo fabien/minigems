@@ -264,6 +264,7 @@ unless $LOADED_FEATURES.include?("rubygems.rb")
     
     # Find a file in the Gem source index - loads up the full rubygems!
     def self.find_in_source_index(path)
+      return nil if path == 'Win32API' && !Gem.win_platform?
       puts "Switching from minigems to full rubygems..." if $MINIGEMS_DEBUG
       Gem.searcher.find(path)
     end
