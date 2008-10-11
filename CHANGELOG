@@ -1,3 +1,7 @@
+0.9.5 - 10/11/2008:
+* Display warning when full RubyGems is loaded ($MINIGEMS_DEBUG is obsolete).
+* Instead of globbing the system, just switch to full RubyGems (shows warning).
+* Don't try to find Win32API on non-windows platforms.
 0.9.4 - 10/01/2008:
 * Uses uses minigems/core (from the RubyGems patch).
 * Refactored Gem.activate and Kernel#require - more robust matching of files.

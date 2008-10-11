@@ -2,7 +2,7 @@ module Gem
 unless const_defined?(:MiniGems)
   module MiniGems
     
-    VERSION = "0.9.4"
+    VERSION = "0.9.5"
     
     # The next line needs to be kept exactly as shown; it's being replaced
     # during minigems installation.
