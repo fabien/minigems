@@ -61,7 +61,7 @@ unless $LOADED_FEATURES.include?("rubygems.rb")
           if !path.include?('/') && (match = Gem.find_name(path))
             Gem.activate_gem_from_path(match.first)
             return gem_original_require(path)
-          elsif (spec = (Gem.find_in_source_path(path) || Gem.find_in_source_index(path)))
+          elsif spec = Gem.searcher.find(path)
             Gem.activate(spec.name, "= #{spec.version}")
             return gem_original_require(path)
           end
@@ -268,7 +268,7 @@ unless $LOADED_FEATURES.include?("rubygems.rb")
     # Find a file in the Gem source index - loads up the full rubygems!
     def self.find_in_source_index(path)
       return nil if path == 'Win32API' && !Gem.win_platform?
-      puts "Switching from minigems to full rubygems..." if $MINIGEMS_DEBUG
+      show_notification "Switching from minigems to full rubygems..."
       Gem.searcher.find(path)
     end
 
@@ -305,11 +305,9 @@ unless $LOADED_FEATURES.include?("rubygems.rb")
     # Load the full rubygems suite, at which point all minigems logic
     # is being overridden, so all regular methods and classes are available.
     def self.load_full_rubygems!
-      if $MINIGEMS_DEBUG
-        puts 'Loaded full RubyGems'
-        if !caller.first.to_s.match(/`const_missing'$/) && (require_entry = get_require_caller(caller))
-          puts "A gem was possibly implicitly loaded from #{require_entry}"
-        end
+      show_notification 'Loaded full RubyGems'
+      if !caller.first.to_s.match(/`const_missing'$/) && (require_entry = get_require_caller(caller))
+        show_notification "A gem was possibly implicitly loaded from #{require_entry}"
       end
       # Clear out any minigems methods
       class << self
@@ -327,6 +325,10 @@ unless $LOADED_FEATURES.include?("rubygems.rb")
       if require_entry && (idx = callstack.index(require_entry)) && (entry = callstack[idx + 1])
         entry
       end
+    end
+    
+    def self.show_notification(msg)
+      puts "\033[1;31m#{msg}\033[0m"
     end
   
     # Record all minigems methods - except the minigems? predicate method.
