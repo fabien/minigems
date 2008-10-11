@@ -57,6 +57,8 @@ unless $LOADED_FEATURES.include?("rubygems.rb")
       rescue LoadError => load_error
         if File.basename(path).match(Gem::MiniGems::INLINE_REGEXP)
           return true # RubyInline dynamicly created .so/.bundle
+        elsif path == 'Win32API' && !Gem.win_platform?
+          raise load_error
         elsif load_error.message =~ /#{Regexp.escape path}\z/
           if !path.include?('/') && (match = Gem.find_name(path))
             Gem.activate_gem_from_path(match.first)
@@ -267,7 +269,6 @@ unless $LOADED_FEATURES.include?("rubygems.rb")
     
     # Find a file in the Gem source index - loads up the full rubygems!
     def self.find_in_source_index(path)
-      return nil if path == 'Win32API' && !Gem.win_platform?
       show_notification "Switching from minigems to full rubygems..."
       Gem.searcher.find(path)
     end
@@ -305,7 +306,7 @@ unless $LOADED_FEATURES.include?("rubygems.rb")
     # Load the full rubygems suite, at which point all minigems logic
     # is being overridden, so all regular methods and classes are available.
     def self.load_full_rubygems!
-      show_notification 'Loaded full RubyGems'
+      show_notification 'Loaded full RubyGems instead of MiniGems'
       if !caller.first.to_s.match(/`const_missing'$/) && (require_entry = get_require_caller(caller))
         show_notification "A gem was possibly implicitly loaded from #{require_entry}"
       end
@@ -315,6 +316,9 @@ unless $LOADED_FEATURES.include?("rubygems.rb")
           undef_method method_name
         end
       end
+      # Fix some constants from throwing already initialized warnings
+      Gem.send(:remove_const, :RubyGemsPackageVersion)
+      Gem.send(:remove_const, :WIN_PATTERNS)
       # Re-alias the 'require' method back to its original.
       ::Kernel.module_eval { alias_method :require, :gem_original_require }
       require $LOADED_FEATURES.delete("rubygems.rb")
