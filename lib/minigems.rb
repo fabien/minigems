@@ -58,7 +58,8 @@ unless $LOADED_FEATURES.include?("rubygems.rb")
         gem_original_require path
       rescue LoadError => load_error
         if File.basename(path).match(Gem::MiniGems::INLINE_REGEXP)
-          return true # RubyInline dynamicly created .so/.bundle
+          # RubyInline dynamically created .so/.bundle
+          return gem_original_require(File.join(Inline.directory, path))
         elsif path == 'Win32API' && !Gem.win_platform?
           raise load_error
         elsif load_error.message =~ /#{Regexp.escape path}\z/
