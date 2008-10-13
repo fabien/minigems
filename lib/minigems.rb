@@ -2,7 +2,7 @@ module Gem
 unless const_defined?(:MiniGems)
   module MiniGems
     
-    VERSION = "0.9.5"
+    VERSION = "0.9.6"
     
     # The next line needs to be kept exactly as shown; it's being replaced
     # during minigems installation.
@@ -19,6 +19,8 @@ end
 
 # Enable minigems unless rubygems has already loaded.
 unless $LOADED_FEATURES.include?("rubygems.rb")
+
+  $MINIGEMS_SKIPPABLE ||= []
 
   $LOADED_FEATURES << "rubygems.rb"
   require 'minigems/core'
@@ -63,6 +65,8 @@ unless $LOADED_FEATURES.include?("rubygems.rb")
           if !path.include?('/') && (match = Gem.find_name(path))
             Gem.activate_gem_from_path(match.first)
             return gem_original_require(path)
+          elsif $MINIGEMS_SKIPPABLE.include?(path)
+            raise load_error
           elsif spec = Gem.searcher.find(path)
             Gem.activate(spec.name, "= #{spec.version}")
             return gem_original_require(path)

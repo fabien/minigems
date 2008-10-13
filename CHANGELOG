@@ -1,3 +1,7 @@
+0.9.6 - 10/13/2008:
+* Added $MINIGEMS_SKIPPABLE for specifying optional requirements; there are some
+  gems that do require&rescue to load optional requirements. This construct will
+  trigger the loading of the full rubygems system.
 0.9.5 - 10/11/2008:
 * Display warning when full RubyGems is loaded ($MINIGEMS_DEBUG is obsolete).
 * Instead of globbing the system, just switch to full RubyGems (shows warning).
