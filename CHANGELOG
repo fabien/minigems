@@ -1,3 +1,5 @@
+0.9.7 - 10/13/2008:
+* MiniGems is now compatible with dynamically created code from RubyInline.
 0.9.6 - 10/13/2008:
 * Added $MINIGEMS_SKIPPABLE for specifying optional requirements; there are some
   gems that do require&rescue to load optional requirements. This construct will
