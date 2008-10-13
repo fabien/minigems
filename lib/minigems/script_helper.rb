@@ -29,7 +29,7 @@ module Gem
   
   class Command
     def get_all_referenced_gem_specs
-      get_all_gem_names.map { |name| Gem.source_index.search(name).last }.compact
+      get_all_gem_names.map { |name| Gem.source_index.find_name(name).last }.compact
     end
   end
   
