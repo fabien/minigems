@@ -57,7 +57,8 @@ unless $LOADED_FEATURES.include?("rubygems.rb")
       def require(path) # :nodoc:
         gem_original_require path
       rescue LoadError => load_error
-        if File.basename(path).match(Gem::MiniGems::INLINE_REGEXP)
+        if File.basename(path).match(Gem::MiniGems::INLINE_REGEXP) && 
+          Object.const_defined?(:Inline)
           # RubyInline dynamically created .so/.bundle
           return gem_original_require(File.join(Inline.directory, path))
         elsif path == 'Win32API' && !Gem.win_platform?
@@ -121,7 +122,8 @@ unless $LOADED_FEATURES.include?("rubygems.rb")
     def self.activate(gem, *version_requirements)
       if match = find_name(gem, *version_requirements)
         activate_gem_from_path(match.first)
-      elsif match = find_name(MiniGems.camel_case(gem), *version_requirements)
+      elsif gem.is_a?(String) && 
+        match = find_name(MiniGems.camel_case(gem), *version_requirements)
         activate_gem_from_path(match.first)
       else
         unless gem.respond_to?(:name) && gem.respond_to?(:version_requirements)
