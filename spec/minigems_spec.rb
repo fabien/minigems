@@ -94,12 +94,12 @@ describe Gem::MiniGems do
       AwesomeGem::VERSION.should == "0.0.2"
     end
     
-    # it "for gems with a CamelCased package name" do
-    #   require("camel_cased_gem").should be_true
-    #   lambda { CamelCasedGem::Awesome }.should_not raise_error(NameError)
-    #   CamelCasedGem::VERSION.should == "0.0.1"
-    # end
-    # 
+    it "for gems with a CamelCased package name" do
+      require("camel_cased_gem").should be_true
+      lambda { CamelCasedGem::Awesome }.should_not raise_error(NameError)
+      CamelCasedGem::VERSION.should == "0.0.1"
+    end
+    
     # it "for files in a gems' load path" do
     #   require("super_sonic").should be_true
     #   lambda { AwesomeGem::SuperSonic }.should_not raise_error(NameError)

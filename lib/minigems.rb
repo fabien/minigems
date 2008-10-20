@@ -2,7 +2,7 @@ module Gem
 unless const_defined?(:MiniGems)
   module MiniGems
     
-    VERSION = "0.9.7"
+    VERSION = "0.9.8"
     
     # The next line needs to be kept exactly as shown; it's being replaced
     # during minigems installation.
@@ -64,8 +64,7 @@ unless $LOADED_FEATURES.include?("rubygems.rb")
         elsif path == 'Win32API' && !Gem.win_platform?
           raise load_error
         elsif load_error.message =~ /#{Regexp.escape path}\z/
-          if !path.include?('/') && (match = Gem.find_name(path))
-            Gem.activate_gem_from_path(match.first)
+          if !path.include?('/') && Gem.activate(path)
             return gem_original_require(path)
           elsif $MINIGEMS_SKIPPABLE.include?(path)
             raise load_error
@@ -123,7 +122,7 @@ unless $LOADED_FEATURES.include?("rubygems.rb")
       if match = find_name(gem, *version_requirements)
         activate_gem_from_path(match.first)
       elsif gem.is_a?(String) && 
-        match = find_name(MiniGems.camel_case(gem), *version_requirements)
+        (match = find_name(MiniGems.camel_case(gem), *version_requirements))
         activate_gem_from_path(match.first)
       else
         unless gem.respond_to?(:name) && gem.respond_to?(:version_requirements)
@@ -283,16 +282,18 @@ unless $LOADED_FEATURES.include?("rubygems.rb")
     # Find the best (highest) matching gem version.
     def self.find_name(gem, *version_requirements)
       version_requirements = Gem::Requirement.default if version_requirements.empty?
-      unless gem.respond_to?(:name) && gem.respond_to?(:version_requirements)
-        gem = Gem::Dependency.new(gem, version_requirements)
+      if gem.respond_to?(:name) && gem.respond_to?(:version_requirements)
+        dependency = gem
+      else
+        dependency = Gem::Dependency.new(gem.to_s, version_requirements)
       end
-    
-      gemspec_sets = self.path.map { |path| [path, Dir["#{path}/specifications/#{gem.name}-*.gemspec"]] }
+      
+      gemspec_sets = self.path.map { |path| [path, Dir["#{path}/specifications/#{dependency.name}-*.gemspec"]] }
       versions = gemspec_sets.inject([]) do |versions, (root_path, gems)|
         unless gems.empty?
           gems.each do |gemspec_path|
             if (version_no = gemspec_path[/-([\d\.]+)\.gemspec$/, 1]) &&
-              gem.version_requirements.satisfied_by?(version = Gem::Version.new(version_no))
+              dependency.version_requirements.satisfied_by?(version = Gem::Version.new(version_no))
               versions << [gemspec_path, version]
             end
           end

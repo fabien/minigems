@@ -1,3 +1,5 @@
+0.9.8 - 10/20/2008:
+* Misc. fixes to Gem activation.
 0.9.7 - 10/13/2008:
 * MiniGems is now compatible with dynamically created code from RubyInline.
 0.9.6 - 10/13/2008:
